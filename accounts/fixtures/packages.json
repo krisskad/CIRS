@@ -1,0 +1,26 @@
+[
+  {
+    "model": "accounts.packages",
+    "pk": 1,
+    "fields": {
+        "package_name": "trial",
+        "search_limit": 10
+    }
+  },
+  {
+    "model": "accounts.packages",
+    "pk": 2,
+    "fields": {
+        "package_name": "standard",
+        "search_limit": 50
+    }
+  },
+  {
+    "model": "accounts.packages",
+    "pk": 3,
+    "fields": {
+        "package_name": "business",
+        "search_limit": 100
+    }
+  }
+]
