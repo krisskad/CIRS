@@ -1,3 +1,5 @@
+import os.path
+
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
@@ -6,26 +8,37 @@ from selenium.common.exceptions import NoSuchElementException
 import time
 import datetime
 import pandas as pd
-
+from tqdm import tqdm
 import csv
 from io import StringIO
 from django.core.files.base import ContentFile
 
 
 class AmazonScrape:
-    def __int__(self):
-        pass
+    def __init__(self, uuid=None):
+        self.uuid = uuid
+        self.user_dir = os.path.join("assets", self.uuid)
+        self.filename = f"amazon_{time.strftime('%Y%m%d-%H%M%S')}.csv"
+        self.full_path = os.path.join(self.user_dir, self.filename)
+
+
+        # create user directory if not exist
+        os.makedirs(name=self.user_dir, exist_ok=True)
 
     def scrape(self, search_term=None, pages=3):
+        cols_list = ['SearchTerm', 'PageNum', 'Rank', 'Sponsered', 'ProductURL', 'Title', 'ASIN', 'SalesPrice',
+                     'ListPrice', 'RatingsCount', 'AvgRating']
+        df = pd.DataFrame(columns=cols_list)
+
+        df.to_csv(self.full_path, index=False)
+
         options = webdriver.ChromeOptions()
-        options.add_argument('--headless')
+        # options.add_argument('--headless')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
-        filename = self.create_file()
-
-        for page_num in range(1, pages):
+        for page_num in tqdm(range(1, pages)):
             search_keyword = search_term.replace(" ", "+")
             url = f'https://www.amazon.com/s?k={search_keyword}&page={str(page_num)}&ref=nb_sb_noss_2'
             driver.get(url)
@@ -85,19 +98,5 @@ class AmazonScrape:
 
                 temp_df = pd.DataFrame([data])
                 # df = pd.concat([df, temp_df], ignore_index=True)
-                temp_df.to_csv(filename, index=False, mode='a', header=False)
-        return {
-            "filename":filename,
-        }
-
-    def create_file(self, filename=None):
-        cols_list = ['SearchTerm', 'PageNum', 'Rank', 'Sponsered', 'ProductURL', 'Title', 'ASIN', 'SalesPrice',
-                     'ListPrice', 'RatingsCount', 'AvgRating']
-        df = pd.DataFrame(columns=cols_list)
-
-        if filename is None:
-            filename = f"amazon_{str(datetime.datetime.now())}.csv"
-
-        df.to_csv(filename, index=False)
-
-        return filename
+                temp_df.to_csv(self.full_path, index=False, mode='a', header=False)
+        return self.full_path

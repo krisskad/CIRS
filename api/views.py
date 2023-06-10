@@ -8,6 +8,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.response import Response
 from django.core.files import File
 from rest_framework import status
+from pathlib import Path
 
 from api.serializers import *
 from api.models import *
@@ -40,23 +41,31 @@ class SiteConfigViewSet(ViewSet):
 
 
 class ExtractData(ViewSet):
+    queryset = Extraction.objects.all()
     serializer_class = ExtractSerializer
     permission_classes = (AllowAny, IsAuthenticated)
 
     def list(self, request):
-        user = request.user.username
-        queryset = {
-            "user": user,
-
-        }
+        queryset = self.queryset.filter(user=request.user.id).values()
         return Response(queryset)
 
     def post(self, request):
         company_name = request.data.get("company_name", None)
+        uuid = str(request.user.id)
 
-        queryset = {
-            "USE CASE": company_name,
-            "TIP": "Choose check box to get that data in response",
+        # scrape amazon
+        amazon = AmazonScrape(uuid=uuid)
+        filepath = amazon.scrape(search_term=company_name)
+        # local_file = open(filepath)
+        # content_file = File(local_file)
+        # print(filepath)
+        # print(content_file)
+        queryset = Extraction.objects.create(
+            user=request.user,
+            search_term=company_name,
+            amazon=Path(filepath).name
+        )
+        print(queryset)
+        # local_file.close()
 
-        }
-        return Response(queryset)
+        return Response({"d":"f"})
