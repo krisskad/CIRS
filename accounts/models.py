@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.utils.translation import ugettext_lazy as _
 import uuid
+from django.utils import timezone
 
 
 class CustomUserManager(BaseUserManager):
@@ -37,12 +38,23 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 
+class Packages(models.Model):
+    # package name
+    package_name = models.CharField(max_length=128)
+    # search limit
+    search_limit = models.IntegerField(default=10)
+    # track updates
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
+
+
 class UserAccount(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     city = models.CharField(max_length=255, blank=True, null=True)
     country = models.CharField(max_length=255, blank=True, null=True)
     state = models.CharField(max_length=255, blank=True, null=True)
     contact_number = models.CharField(max_length=15, blank=True, null=True)
+    package = models.ForeignKey(Packages, on_delete=models.DO_NOTHING, null=True)
     coins = models.IntegerField(default=0)
     date_of_birth = models.DateField(blank=True, null=True)
     profile_pic = models.ImageField(blank=True, null=True)
@@ -53,5 +65,9 @@ class UserAccount(AbstractUser):
 
     objects = CustomUserManager()
 
-    def __str__(self):
-        return self.email
+    # def __str__(self):
+    #     return self.email
+
+    # def save(self, *args, **kwargs):
+    #     self.package = Packages.objects.get(package_name='trial')
+    #     super(UserAccount, self).save(*args, **kwargs)

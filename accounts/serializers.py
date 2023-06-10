@@ -1,6 +1,8 @@
 from djoser.serializers import UserCreateSerializer
+from rest_framework import serializers
 from accounts.models import UserAccount
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from accounts.models import Packages
 # from django.contrib.auth import get_user_model
 # User = get_user_model()
 
@@ -24,3 +26,10 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['id'] = str(user.id)
 
         return token
+
+
+class PackageSerializer(serializers.ModelSerializer):
+    """Serializer for Site Configuration"""
+    class Meta:
+        model = Packages
+        fields = "__all__"

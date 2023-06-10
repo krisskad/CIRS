@@ -1,24 +1,28 @@
+import pandas as pd
 from django.shortcuts import render
 from rest_framework.viewsets import ViewSet
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
-from rest_framework_simplejwt.authentication import JWTAuthentication
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 from rest_framework.response import Response
-from django.core.files import File
+# from django.core.files import File
 from rest_framework import status
 from pathlib import Path
 
 from api.serializers import *
 from api.models import *
+from accounts.models import Packages
+from accounts.serializers import PackageSerializer
 from .scrapper.amazon import AmazonScrape
 import requests
-
+import numpy as np
 
 class SiteConfigViewSet(ViewSet):
-    queryset = SiteConfig.objects.all()
-    serializer_class = SiteConfigSerializer
+    queryset = Packages.objects.all()
+    serializer_class = PackageSerializer
     permission_classes = (IsAdminUser, IsAuthenticated)
 
     def list(self, request):
@@ -27,12 +31,12 @@ class SiteConfigViewSet(ViewSet):
 
     def retrieve(self, request, pk=None):
         item = get_object_or_404(self.queryset, pk=pk)
-        serializer = SiteConfigSerializer(item)
+        serializer = PackageSerializer(item)
         return Response(serializer.data)
 
     def update(self, request, pk=None):
         item = self.queryset.get(pk=pk)
-        serializer = SiteConfigSerializer(item, data=request.data)
+        serializer = PackageSerializer(item, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -50,22 +54,29 @@ class ExtractData(ViewSet):
         return Response(queryset)
 
     def post(self, request):
-        company_name = request.data.get("company_name", None)
-        uuid = str(request.user.id)
+        if request.user.coins < Packages.objects.get(package_name='trial').search_limit or request.user.is_admin:
+            company_name = request.data.get("company_name", None)
+            uuid = str(request.user.id)
 
-        # scrape amazon
-        amazon = AmazonScrape(uuid=uuid)
-        filepath = amazon.scrape(search_term=company_name)
-        # local_file = open(filepath)
-        # content_file = File(local_file)
-        # print(filepath)
-        # print(content_file)
-        queryset = Extraction.objects.create(
-            user=request.user,
-            search_term=company_name,
-            amazon=Path(filepath).name
-        )
-        print(queryset)
-        # local_file.close()
+            # scrape amazon
+            amazon = AmazonScrape(uuid=uuid)
+            filepath = amazon.scrape(search_term=company_name)
 
-        return Response({"d":"f"})
+            # save data
+            queryset = Extraction.objects.create(
+                user=request.user,
+                search_term=company_name,
+                amazon=Path(filepath).name
+            )
+
+            print(queryset)
+
+            # send scraped data
+            amazon_df = pd.read_csv(filepath).replace(np.nan, None)
+            context = {
+                "amazon":amazon_df.to_dict(orient='records')
+            }
+
+            return Response(data=context, status=status.HTTP_200_OK)
+        else:
+            return Response({"message": "Search limit exceeded"}, status=status.HTTP_401_UNAUTHORIZED)

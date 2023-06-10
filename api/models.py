@@ -1,17 +1,8 @@
 from django.db import models
+from django.db.models import F
 from django.contrib.auth import get_user_model
 User = get_user_model()
 # Create your models here.
-
-
-class SiteConfig(models.Model):
-    # Packages
-    trial_limit = models.IntegerField(default=10)
-    standard_limit = models.IntegerField(default=50)
-    business_limit = models.IntegerField(default=100)
-    # track updates
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
 
 def content_file_name(instance, filename):
@@ -31,3 +22,8 @@ class Extraction(models.Model):
     # track updates
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        User.objects.filter(id=self.user.id).update(coins=F('coins')+1)
+        super(Extraction, self).save(*args, **kwargs)
+
