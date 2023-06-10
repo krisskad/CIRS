@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from api.models import SiteConfig
 
 
 class ExtractSerializer(serializers.Serializer):
@@ -6,3 +7,10 @@ class ExtractSerializer(serializers.Serializer):
 
     class Meta:
         fields = ['company_name']
+
+
+class SiteConfigSerializer(serializers.ModelSerializer):
+    """Serializer for Site Configuration"""
+    class Meta:
+        model = SiteConfig
+        fields = "__all__"

@@ -1,47 +1,49 @@
 from django.shortcuts import render
-from django.shortcuts import render
 from rest_framework.viewsets import ViewSet
+from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
-from rest_framework.response import Response
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from .serializers import *
+from rest_framework.response import Response
+from django.core.files import File
+from rest_framework import status
+
+from api.serializers import *
+from api.models import *
 from .scrapper.amazon import AmazonScrape
 import requests
 
 
-class AdminConfig(ViewSet):
-    serializer_class = ExtractSerializer
-    permission_classes = (IsAdminUser,)
-    # permission_classes = (IsAuthenticated,)
+class SiteConfigViewSet(ViewSet):
+    queryset = SiteConfig.objects.all()
+    serializer_class = SiteConfigSerializer
+    permission_classes = (IsAdminUser, IsAuthenticated)
 
     def list(self, request):
+        serializer = self.serializer_class(self.queryset, many=True)
+        return Response(serializer.data)
 
-        queryset = {
-            "USE CASE": "Configure the site settings and params",
-            "TIP": "Params will be use to scrape the data and set the user limits",
+    def retrieve(self, request, pk=None):
+        item = get_object_or_404(self.queryset, pk=pk)
+        serializer = SiteConfigSerializer(item)
+        return Response(serializer.data)
 
-        }
-        return Response(queryset)
+    def update(self, request, pk=None):
+        item = self.queryset.get(pk=pk)
+        serializer = SiteConfigSerializer(item, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
 
-    def post(self, request):
-        company_name = request.data.get("company_name", None)
-
-        queryset = {
-            "USE CASE": company_name,
-            "TIP": "Choose check box to get that data in response",
-
-        }
-        return Response(queryset)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ExtractData(ViewSet):
     serializer_class = ExtractSerializer
-    # permission_classes = (AllowAny,)
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (AllowAny, IsAuthenticated)
 
     def list(self, request):
-
         user = request.user.username
         queryset = {
             "user": user,
