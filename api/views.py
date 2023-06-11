@@ -16,7 +16,8 @@ from api.serializers import *
 from api.models import *
 from accounts.models import Packages
 from accounts.serializers import PackageSerializer
-from .scrapper.amazon import AmazonScrape
+from .scrapper.main import main
+
 import requests
 import numpy as np
 
@@ -54,29 +55,56 @@ class ExtractData(ViewSet):
         return Response(queryset)
 
     def post(self, request):
-        if request.user.coins < Packages.objects.get(package_name='trial').search_limit or request.user.is_admin:
+        if request.user.coins < Packages.objects.get(package_name='trial').search_limit:
             company_name = request.data.get("company_name", None)
             uuid = str(request.user.id)
 
-            # scrape amazon
-            amazon = AmazonScrape(uuid=uuid)
-            filepath = amazon.scrape(search_term=company_name)
-
             # save data
-            queryset = Extraction.objects.create(
-                user=request.user,
-                search_term=company_name,
-                amazon=Path(filepath).name
-            )
+            extract_ins = Extraction(user=request.user, search_term=company_name)
 
-            print(queryset)
+            result = main(search_term=company_name, uuid=uuid)
+            # # google scrape
+            # try:
+            #     google = GoogleScrape()
+            #     google_data = google.scrape(search_term=company_name)
+            #     extract_ins.company_detail = google_data
+            # except Extraction as e:
+            #     google_data = ""
+            #     print(f"Error While Scrapping Google : {e}")
+            #
+            # # scrape amazon
+            # try:
+            #     amazon = AmazonScrape(uuid=uuid)
+            #     filepath = amazon.scrape(search_term=company_name)
+            #     extract_ins.amazon = Path(filepath).name
+            #     amazon_df = pd.read_csv(filepath).replace(np.nan, None).to_dict(orient='records')
+            # except Extraction as e:
+            #     amazon_df = []
+            #     print(f"Error While Scrapping Amazon : {e}")
+            #
+            # # scrape linkedin
+            # try:
+            #     linkedin = LinkedInScrape()
+            #     linkedin_data = linkedin.scrape()
+            #     extract_ins.linkedin = linkedin_data
+            # except Extraction as e:
+            #     linkedin_data = ""
+            #     print(f"Error While Scrapping LinkedIn : {e}")
+
+            # Update the extract_ins object with the scraped data
+            extract_ins.company_detail = result["company_detail"]
+            extract_ins.amazon = Path(result["amazon"]).name
+            extract_ins.linkedin = result["linkedin"]
 
             # send scraped data
-            amazon_df = pd.read_csv(filepath).replace(np.nan, None)
-            context = {
-                "amazon":amazon_df.to_dict(orient='records')
-            }
+            result["amazon_products"] = pd.read_csv(result["amazon"]).replace(np.nan, None).to_dict(orient='records')
 
-            return Response(data=context, status=status.HTTP_200_OK)
+            # context = {
+            #     "company_detail":google_data,
+            #     "linkedin_data":linkedin_data,
+            #     "amazon_products":amazon_df
+            # }
+
+            return Response(data=result, status=status.HTTP_200_OK)
         else:
             return Response({"message": "Search limit exceeded"}, status=status.HTTP_401_UNAUTHORIZED)

@@ -21,9 +21,14 @@ class AmazonScrape:
         self.filename = f"amazon_{time.strftime('%Y%m%d-%H%M%S')}.csv"
         self.full_path = os.path.join(self.user_dir, self.filename)
 
-
         # create user directory if not exist
         os.makedirs(name=self.user_dir, exist_ok=True)
+
+        options = webdriver.ChromeOptions()
+        # options.add_argument('--headless')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
     def scrape(self, search_term=None, pages=3):
         cols_list = ['SearchTerm', 'PageNum', 'Rank', 'Sponsered', 'ProductURL', 'Title', 'ASIN', 'SalesPrice',
@@ -32,20 +37,14 @@ class AmazonScrape:
 
         df.to_csv(self.full_path, index=False)
 
-        options = webdriver.ChromeOptions()
-        # options.add_argument('--headless')
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-
         for page_num in tqdm(range(1, pages)):
             search_keyword = search_term.replace(" ", "+")
             url = f'https://www.amazon.com/s?k={search_keyword}&page={str(page_num)}&ref=nb_sb_noss_2'
-            driver.get(url)
+            self.driver.get(url)
             time.sleep(3)
-            driver.execute_script("window.scrollBy(0,12500)")
+            self.driver.execute_script("window.scrollBy(0,12500)")
             time.sleep(3)
-            product_tiles = driver.find_elements(By.XPATH, '//div[@data-component-type="s-search-result"]')
+            product_tiles = self.driver.find_elements(By.XPATH, '//div[@data-component-type="s-search-result"]')
             product_position = 1
 
             for tile in product_tiles:

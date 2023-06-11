@@ -17,7 +17,7 @@ class Extraction(models.Model):
     company_detail = models.TextField(null=True)
     # Store Extracted Files
     amazon = models.FileField(upload_to=content_file_name, null=True) # BASE_DIR -> assets -> uuid
-    linkedin = models.FileField(upload_to=content_file_name, null=True) # BASE_DIR -> assets -> uuid
+    linkedin = models.TextField(null=True) # BASE_DIR -> assets -> uuid
     twitter = models.FileField(upload_to=content_file_name, null=True) # BASE_DIR -> assets -> uuid
     # track updates
     created_at = models.DateTimeField(auto_now_add=True)
