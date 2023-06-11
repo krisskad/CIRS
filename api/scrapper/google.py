@@ -11,6 +11,6 @@ class GoogleScrape:
         for each in questions:
             answer = people_also_ask.get_answer(each)
             response = answer.get("response", None)
-            result += response + "\n\n"
+            result += str(response) + "\n\n"
 
         return result

@@ -6,18 +6,15 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 import time
-import datetime
 import pandas as pd
 from tqdm import tqdm
-import csv
-from io import StringIO
-from django.core.files.base import ContentFile
+from django.conf import settings
 
 
 class AmazonScrape:
     def __init__(self, uuid=None):
         self.uuid = uuid
-        self.user_dir = os.path.join("assets", self.uuid)
+        self.user_dir = os.path.join(settings.MEDIA_ROOT, "assets", self.uuid)
         self.filename = f"amazon_{time.strftime('%Y%m%d-%H%M%S')}.csv"
         self.full_path = os.path.join(self.user_dir, self.filename)
 

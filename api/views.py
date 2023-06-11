@@ -69,21 +69,21 @@ class ExtractData(ViewSet):
 
             # Update the extract_ins object with the scraped data
             extract_ins.company_detail = result["company_detail"]
-            extract_ins.amazon = Path(result["amazon"]).name
+            extract_ins.amazon = str(result["amazon"]).split("/media/")[-1]
             extract_ins.linkedin = result["linkedin"]
 
             # save
             extract_ins.save()
 
             # send scraped data
-            result["amazon_products"] = pd.read_csv(result["amazon"]).replace(np.nan, None).to_dict(orient='records')
+            # result["amazon_products"] = pd.read_csv(result["amazon"]).replace(np.nan, None).to_dict(orient='records')
 
-            # context = {
-            #     "company_detail":google_data,
-            #     "linkedin_data":linkedin_data,
-            #     "amazon_products":amazon_df
-            # }
+            context = {
+                "company_detail":extract_ins.company_detail,
+                "linkedin_data":extract_ins.linkedin,
+                "amazon":extract_ins.amazon.url
+            }
 
-            return Response(data=result, status=status.HTTP_200_OK)
+            return Response(data=context, status=status.HTTP_200_OK)
         else:
             return Response({"message": "Search limit exceeded"}, status=status.HTTP_401_UNAUTHORIZED)
