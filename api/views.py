@@ -51,11 +51,14 @@ class ExtractData(ViewSet):
     permission_classes = (AllowAny, IsAuthenticated)
 
     def list(self, request):
-        queryset = self.queryset.filter(user=request.user.id).values()
+        if request.user.is_superuser:
+            queryset = self.queryset.values()
+        else:
+            queryset = self.queryset.filter(user=request.user.id).values()
         return Response(queryset)
 
     def post(self, request):
-        if request.user.coins < Packages.objects.get(package_name='trial').search_limit:
+        if request.user.coins < Packages.objects.get(package_name='trial').search_limit or request.user.is_superuser:
             company_name = request.data.get("company_name", None)
             uuid = str(request.user.id)
 
@@ -63,38 +66,14 @@ class ExtractData(ViewSet):
             extract_ins = Extraction(user=request.user, search_term=company_name)
 
             result = main(search_term=company_name, uuid=uuid)
-            # # google scrape
-            # try:
-            #     google = GoogleScrape()
-            #     google_data = google.scrape(search_term=company_name)
-            #     extract_ins.company_detail = google_data
-            # except Extraction as e:
-            #     google_data = ""
-            #     print(f"Error While Scrapping Google : {e}")
-            #
-            # # scrape amazon
-            # try:
-            #     amazon = AmazonScrape(uuid=uuid)
-            #     filepath = amazon.scrape(search_term=company_name)
-            #     extract_ins.amazon = Path(filepath).name
-            #     amazon_df = pd.read_csv(filepath).replace(np.nan, None).to_dict(orient='records')
-            # except Extraction as e:
-            #     amazon_df = []
-            #     print(f"Error While Scrapping Amazon : {e}")
-            #
-            # # scrape linkedin
-            # try:
-            #     linkedin = LinkedInScrape()
-            #     linkedin_data = linkedin.scrape()
-            #     extract_ins.linkedin = linkedin_data
-            # except Extraction as e:
-            #     linkedin_data = ""
-            #     print(f"Error While Scrapping LinkedIn : {e}")
 
             # Update the extract_ins object with the scraped data
             extract_ins.company_detail = result["company_detail"]
             extract_ins.amazon = Path(result["amazon"]).name
             extract_ins.linkedin = result["linkedin"]
+
+            # save
+            extract_ins.save()
 
             # send scraped data
             result["amazon_products"] = pd.read_csv(result["amazon"]).replace(np.nan, None).to_dict(orient='records')
