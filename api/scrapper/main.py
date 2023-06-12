@@ -25,24 +25,24 @@ def scrape_amazon(company_name, uuid):
         return []
 
 
-def scrape_linkedin():
+def scrape_linkedin(search_term):
     try:
         linkedin = LinkedInScrape()
-        linkedin_data = linkedin.scrape()
+        linkedin_data = linkedin.scrape(search_term=search_term)
         return linkedin_data
     except Exception as e:
         print(f"Error While Scraping LinkedIn: {e}")
         return ""
 
 
-def main(search_term, uuid, ):
+def main(search_term, uuid):
     # Create a multiprocessing pool
     pool = multiprocessing.Pool(processes=3)
 
     # Define the arguments for each scraping task
     google_args = (search_term,)
     amazon_args = (search_term, uuid)
-    linkedin_args = ()
+    linkedin_args = (search_term, )
 
     # Run the scraping tasks concurrently
     google_result = pool.apply_async(scrape_google, google_args)

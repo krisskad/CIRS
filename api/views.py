@@ -77,11 +77,10 @@ class ExtractData(ViewSet):
 
             # send scraped data
             # result["amazon_products"] = pd.read_csv(result["amazon"]).replace(np.nan, None).to_dict(orient='records')
-
             context = {
                 "company_detail":extract_ins.company_detail,
                 "linkedin_data":extract_ins.linkedin,
-                "amazon":extract_ins.amazon.url
+                "amazon":str(request.build_absolute_uri(extract_ins.amazon.url))
             }
 
             return Response(data=context, status=status.HTTP_200_OK)

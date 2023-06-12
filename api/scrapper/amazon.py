@@ -9,6 +9,7 @@ import time
 import pandas as pd
 from tqdm import tqdm
 from django.conf import settings
+from .VirtualDisplayCodeAndTranslate import SmartDisplayWithTranslate
 
 
 class AmazonScrape:
@@ -20,6 +21,8 @@ class AmazonScrape:
 
         # create user directory if not exist
         os.makedirs(name=self.user_dir, exist_ok=True)
+
+        self.smt_dsp = SmartDisplayWithTranslate()
 
         options = webdriver.ChromeOptions()
         # options.add_argument('--headless')
@@ -95,4 +98,9 @@ class AmazonScrape:
                 temp_df = pd.DataFrame([data])
                 # df = pd.concat([df, temp_df], ignore_index=True)
                 temp_df.to_csv(self.full_path, index=False, mode='a', header=False)
+
+        try:
+            self.smt_dsp.stopSmartDisplay()
+        except:
+            pass
         return self.full_path

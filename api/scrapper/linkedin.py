@@ -1,10 +1,17 @@
+import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 import time
+import math
 import re
+from collections import Counter
+
+WORD = re.compile(r"\w+")
+import re
+from .VirtualDisplayCodeAndTranslate import SmartDisplayWithTranslate
 
 
 class LinkedInScrape:
@@ -14,6 +21,7 @@ class LinkedInScrape:
         if not password:
             self.password = "mynameis@krishna"
 
+        self.smt_dsp = SmartDisplayWithTranslate()
         options = webdriver.ChromeOptions()
         # options.add_argument('--headless')
         options.add_argument('--no-sandbox')
@@ -42,14 +50,24 @@ class LinkedInScrape:
         for elem in elems:
             company_url = elem.get_attribute("href")
             company_list.append(company_url)
-
+        print(company_list)
         # extract company name from url
         final_name = ""
+        company_name_score = []
         for url in company_list:
-            final_name = self.get_company_name(url)
-            if final_name:
-                break
+            if isinstance(url, str):
+                final_name = self.get_company_name(url)
+                if final_name and isinstance(final_name, str):
+                    vector1 = self.text_to_vector(final_name)
+                    vector2 = self.text_to_vector(search_term)
 
+                    cosine = self.get_cosine(vector1, vector2)
+                    company_name_score.append({"company_name":final_name, "score":cosine})
+        temp_df = pd.DataFrame(company_name_score)
+        print(temp_df)
+        if len(temp_df)>0:
+            final_name = temp_df[temp_df['score'] == temp_df['score'].max()]['company_name'].tolist()[0]
+        print(final_name)
         # use company name to extract company info
         if final_name:
             company_page = f"https://www.linkedin.com/company/{final_name}/"
@@ -61,6 +79,11 @@ class LinkedInScrape:
 
         else:
             overview = ""
+
+        try:
+            self.smt_dsp.stopSmartDisplay()
+        except:
+            pass
 
         return overview
 
@@ -78,3 +101,20 @@ class LinkedInScrape:
             company_name = ""
 
         return company_name
+
+    def get_cosine(self, vec1, vec2):
+        intersection = set(vec1.keys()) & set(vec2.keys())
+        numerator = sum([vec1[x] * vec2[x] for x in intersection])
+
+        sum1 = sum([vec1[x] ** 2 for x in list(vec1.keys())])
+        sum2 = sum([vec2[x] ** 2 for x in list(vec2.keys())])
+        denominator = math.sqrt(sum1) * math.sqrt(sum2)
+
+        if not denominator:
+            return 0.0
+        else:
+            return float(numerator) / denominator
+
+    def text_to_vector(self, text):
+        words = WORD.findall(text)
+        return Counter(words)
